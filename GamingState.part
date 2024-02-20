@@ -1,0 +1,11 @@
+{
+    "bpType": "GamingStatePart",
+    "changes": {},
+    "classType": "PartInstance",
+    "clientPartType": null,
+    "customVariables": [],
+    "directoryPath": "GamingState",
+    "metaType": "GamingStatePartMeta",
+    "objId": "83cc51ccb8174f29a0119e944577dbd8",
+    "partType": "GamingStatePart"
+}
