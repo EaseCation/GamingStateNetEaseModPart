@@ -13,5 +13,5 @@ class RootGamingState(GamingState):
         pass
 
     def _on_no_such_next_sub_state(self):
-        self.part.LogInfo("RootGamingState is over.")
+        self.get_part().LogInfo("RootGamingState is over.")
         # TODO 对Part进行一些调用

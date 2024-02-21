@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 from Meta.ClassMetaManager import sunshine_class_meta
-from Meta.EnumMeta import DefEnum
-from Meta.TypeMeta import PBool, PStr, PInt, PCustom, PVector3, PVector3TF, PEnum, PDict, PFloat, PArray, PVector2, PColor
 from Preset.Model import PartBaseMeta
 
 

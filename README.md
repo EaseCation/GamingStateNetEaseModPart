@@ -94,13 +94,13 @@ class TestGamingState(GamingState):
         
     def on_init(self):
         # 在GamingState中，随时通过self.part获取到零件对象
-        self.part.LogDebug('TestGamingState init')
+        self.get_part().LogDebug('TestGamingState init')
         
     def on_enter(self):
-        self.part.LogDebug('TestGamingState enter')
+        self.get_part().LogDebug('TestGamingState enter')
         
     def on_exit(self):
-        self.part.LogDebug('TestGamingState exit')
+        self.get_part().LogDebug('TestGamingState exit')
 ```
 
 在实例化方法中，添加事件监听器：
@@ -131,8 +131,8 @@ class TestGamingState(TimedGamingState):
         self.with_tick(self.on_tick)
     
     def on_time_out(self):
-        self.part.LogDebug('TestGamingState time out')
+        self.get_part().LogDebug('TestGamingState time out')
 
     def on_tick(self):
-        self.part.LogDebug("TestGamingState.tick " + str(self.get_runtime_state_name()) + " " + str(self.get_formatted_time_left()))
+        self.get_part().LogDebug("TestGamingState.tick " + str(self.get_runtime_state_name()) + " " + str(self.get_formatted_time_left()))
 ```

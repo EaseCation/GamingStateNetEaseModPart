@@ -26,7 +26,7 @@ class TimedGamingState(GamingState):
         """
         @description 重置计时器
         """
-        self.part.LogDebug("reset_timer {} + {}".format(str(time.time()), str(self.duration)))
+        self.get_part().LogDebug("reset_timer {} + {}".format(str(time.time()), str(self.duration)))
         self.time_end = time.time() + self.duration
 
     def with_time_out(self, callback):
@@ -39,7 +39,7 @@ class TimedGamingState(GamingState):
     # 内部的状态机回调
 
     def _timed_on_enter(self):
-        self.part.LogDebug("TimedGamingState.on_enter")
+        self.get_part().LogDebug("TimedGamingState.on_enter")
         self.reset_timer()
 
     def _timed_on_tick(self):

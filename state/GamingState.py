@@ -6,26 +6,25 @@ from Preset.Model.PartBase import PartBase
 class GamingState:
 
     def __init__(self):
-        self.part = None  #type: PartBase | None
-        self.parent = None  #type: GamingState | None
-        self.current_sub_state = None  #type: str | None
-        self.loop = False  #type: bool
+        self.parent = None  # type: GamingState | None
+        self.current_sub_state = None  # type: str | None
+        self.loop = False  # type: bool
 
         # 子状态机，是一个有序dict
-        self.sub_states = OrderedDict()  #type: dict[str, GamingState]
+        self.sub_states = OrderedDict()  # type: dict[str, GamingState]
         # 监听器
-        self.listened_events = dict()  #type: dict[tuple[str, str, str], list[callable]] # (namespace, system_name, event_name) -> callback
+        self.listened_events = dict()  # type: dict[tuple[str, str, str], list[callable]] # (namespace, system_name, event_name) -> callback
 
         # 状态初始化时的回调
-        self.callbacks_init = list()  #type: list[callable]
+        self.callbacks_init = list()  # type: list[callable]
         # 状态开始时的回调
-        self.callbacks_enter = list()  #type: list[callable]
+        self.callbacks_enter = list()  # type: list[callable]
         # 状态结束时的回调
-        self.callbacks_exit = list()  #type: list[callable]
+        self.callbacks_exit = list()  # type: list[callable]
         # tick回调
-        self.callbacks_tick = list()  #type: list[callable]
+        self.callbacks_tick = list()  # type: list[callable]
         # 当没有下一个子状态时回调
-        self.callbacks_no_such_next_sub_state = list()  #type: list[callable]
+        self.callbacks_no_such_next_sub_state = list()  # type: list[callable]
 
     # ====== 生命周期方法（不要轻易override） ======
 
@@ -40,13 +39,13 @@ class GamingState:
             try:
                 callback()
             except Exception as e:
-                self.part.LogError("GamingState.init callback error: " + str(e))
+                self.get_part().LogError("GamingState.init callback error: " + str(e))
 
     def enter(self):
         """
         @description 进入状态（不推荐override，而是调用with_enter）
         """
-        self.part.LogDebug("GamingState.enter with callbacks: {}".format(str(self.callbacks_enter)))
+        self.get_part().LogDebug("GamingState.enter with callbacks: {}".format(str(self.callbacks_enter)))
         for callback in self.callbacks_enter:
             try:
                 callback()
@@ -61,7 +60,7 @@ class GamingState:
             try:
                 callback()
             except Exception as e:
-                self.part.LogError("GamingState.exit callback error: " + str(e))
+                self.get_part().LogError("GamingState.exit callback error: " + str(e))
 
     def tick(self):
         """
@@ -91,7 +90,7 @@ class GamingState:
                 try:
                     callback(*args)
                 except Exception as e:
-                    self.part.LogError("GamingState.event_call callback error: " + str(e))
+                    self.get_part().LogError("GamingState.event_call callback error: " + str(e))
         if self.current_sub_state is not None:
             self.sub_states[self.current_sub_state].event_call(namespace, system_name, event_name, *args)
 
@@ -132,7 +131,7 @@ class GamingState:
         if event_name not in self.listened_events:
             self.listened_events[(namespace, system_name, event_name)] = list()
         self.listened_events[(namespace, system_name, event_name)].append(callback)
-        self.part.ListenForEvent(namespace, system_name, event_name, self, callback)
+        self.get_part().ListenForEvent(namespace, system_name, event_name, self, callback)
 
     def add_sub_state(self, name, state_supplier):
         """
@@ -197,7 +196,7 @@ class GamingState:
             if len(keys) > 0:
                 self.current_sub_state = keys[0]
                 state = self.sub_states[self.current_sub_state]
-                self.part.LogDebug("next_sub_state: " + self.current_sub_state)
+                self.get_part().LogDebug("next_sub_state: " + self.current_sub_state)
                 state.enter()
             else:
                 for callback in self.callbacks_no_such_next_sub_state:
@@ -211,7 +210,7 @@ class GamingState:
                 current.exit()
                 self.current_sub_state = keys[index + 1]
                 state = self.sub_states[self.current_sub_state]
-                self.part.LogDebug("next_sub_state: " + self.current_sub_state)
+                self.get_part().LogDebug("next_sub_state: " + self.current_sub_state)
                 state.enter()
             else:
                 if self.loop:
@@ -221,7 +220,8 @@ class GamingState:
                 else:
                     for callback in self.callbacks_no_such_next_sub_state:
                         callback()
-                    if self.is_state_running() and self.current_sub_state == keys[-1]:  # 这边需要判断进行了callback后，目前状态机是否被改变，如果被改变，表示在callback中修改了状态
+                    if self.is_state_running() and self.current_sub_state == keys[
+                        -1]:  # 这边需要判断进行了callback后，目前状态机是否被改变，如果被改变，表示在callback中修改了状态
                         current.exit()
                         if self.parent is not None:
                             self.parent.next_sub_state()
@@ -239,7 +239,7 @@ class GamingState:
         self.current_sub_state = state_name
         self.sub_states[state_name].enter()
 
-    def set_loop(self, loop = True):
+    def set_loop(self, loop=True):
         """
         @description 设置是否循环
         :param loop: 是否循环
@@ -288,4 +288,3 @@ class GamingState:
         :type callback: callable
         """
         self.callbacks_no_such_next_sub_state.append(callback)
-
