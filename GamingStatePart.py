@@ -6,6 +6,7 @@ from Preset.Model.GameObject import registerGenericClass
 
 @registerGenericClass("GamingStatePart")
 class GamingStatePart(PartBase):
+
 	def __init__(self):
 		PartBase.__init__(self)
 		from util.BetterPartUtil import BetterPartUtil

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
-from Preset.Model.PartBase import PartBase
 
 
 class GamingState:
@@ -28,13 +27,10 @@ class GamingState:
 
     # ====== 生命周期方法（不要轻易override） ======
 
-    def init(self, part):
+    def init(self):
         """
         @description 创建状态
-        :param part: 零件对象
-        :type part: PartBase
         """
-        self.part = part
         for callback in self.callbacks_init:
             try:
                 callback()
@@ -50,7 +46,10 @@ class GamingState:
             try:
                 callback()
             except Exception as e:
-                self.part.LogError("GamingState.enter callback error: " + str(e))
+                self.get_part().LogError("GamingState.enter callback error: " + str(e))
+        # 如果该状态机包含子状态，那么自动进入子状态
+        if len(self.sub_states) > 0:
+            self.next_sub_state()
 
     def exit(self):
         """
@@ -67,12 +66,16 @@ class GamingState:
         @description 逻辑驱动（不推荐override，而是调用with_tick）
         """
         if self.current_sub_state is not None:
-            self.sub_states[self.current_sub_state].tick()
+            sub_state = self.sub_states[self.current_sub_state]
+            if sub_state != self:
+                sub_state.tick()
+            else:
+                self.get_part().LogError("尝试tick递归的sub_state: {}".format(self.current_sub_state))
         for callback in self.callbacks_tick:
             try:
                 callback()
             except Exception as e:
-                self.part.LogError("GamingState.tick callback error: " + str(e))
+                self.get_part().LogError("GamingState.tick callback error: " + str(e))
 
     def event_call(self, namespace, system_name, event_name, *args):
         """
@@ -95,6 +98,16 @@ class GamingState:
             self.sub_states[self.current_sub_state].event_call(namespace, system_name, event_name, *args)
 
     # ====== API 方法 ======
+
+    def get_part(self):
+        """
+        获取零件Part实例
+        :rtype: GamingStatePart
+        """
+        if self.parent is not None:
+            return self.parent.get_part()
+        else:
+            return None
 
     def listen_engine_event(self, event_name, callback):
         """
@@ -142,9 +155,9 @@ class GamingState:
         :type state_supplier: callable
         """
         if name in self.sub_states:
-            raise ValueError("State {} already exists".format(name))
-        state = state_supplier()
-        state.init(self.part)
+            raise ValueError("添加子状态时，状态名 {} 已存在".format(name))
+        state = state_supplier()  # type: GamingState
+        state.init()
         self.sub_states[name] = state
         state.parent = self
 
@@ -156,6 +169,9 @@ class GamingState:
         :return: 被移除的子状态
         :rtype: GamingState | None
         """
+        # 如果移除了一个正在进行中的状态，则自动切换到下一状态
+        if self.current_sub_state == state_name:
+            self.next_sub_state()
         return self.sub_states.pop(state_name)
 
     def get_current_sub_state(self):
