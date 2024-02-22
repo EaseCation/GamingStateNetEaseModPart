@@ -1,7 +1,39 @@
 from Preset.Model.PartBase import PartBase
 
+replacements = {
+    "enter": "\n",
+    "black": u"\u00A70",  # Using unicode escape sequence for special character
+    "dark-blue": u"\u00A71",
+    "dark-green": u"\u00A72",
+    "dark-aqua": u"\u00A73",
+    "dark-red": u"\u00A74",
+    "dark-purple": u"\u00A75",
+    "gold": u"\u00A76",
+    "gray": u"\u00A77",
+    "dark-gray": u"\u00A78",
+    "blue": u"\u00A79",
+    "green": u"\u00A7a",
+    "aqua": u"\u00A7b",
+    "red": u"\u00A7c",
+    "light-purple": u"\u00A7d",
+    "yellow": u"\u00A7e",
+    "white": u"\u00A7f",
+    "obfuscated": u"\u00A7k",
+    "bold": u"\u00A7l",
+    "italic": u"\u00A7o",
+    "reset": u"\u00A7r",
+    # Add additional mappings for icons and other special characters
+}
 
 class BetterPartUtil:
+
+    @staticmethod
+    def format_text(raw_msg, **args):
+        for arg in replacements:
+            raw_msg = raw_msg.replace("{" + arg + "}", str(replacements[arg]))
+        for arg in args:
+            raw_msg = raw_msg.replace("{" + arg + "}", str(args[arg]))
+        return raw_msg
 
     def __init__(self, part):
         """
@@ -80,6 +112,8 @@ class BetterPartUtil:
         """
         if fadein is not None or duration is not None or fadeout is not None:
             self.broadcast_title_times(fadein, duration, fadeout)
+        else:
+            self.part.SetCommand("title @a reset")
         if sub_title is not None:
             self.part.SetCommand("title @a subtitle {}".format(sub_title))
         self.part.SetCommand("title @a title {}".format(title))

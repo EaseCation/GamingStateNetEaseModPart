@@ -42,6 +42,14 @@ class GamingStatePart(PartBase):
 		@description 客户端的零件对象逻辑驱动入口
 		"""
 		PartBase.TickClient(self)
+		self.ListenSelfEvent('S2CPlaySoundEvent', self, self.client_play_sound_event)
+
+	def client_play_sound_event(self, args):
+		if args['player_id'] != self.GetLocalPlayerId():
+			return
+		import mod.client.extraClientApi as clientApi
+		comp = clientApi.GetEngineCompFactory().CreateCustomAudio(self.GetLevelId())
+		comp.PlayCustomMusic(args['sound'], args['pos'], args['volume'], args['pitch'], args['loop'], None)
 
 	def TickServer(self):
 		"""
@@ -71,6 +79,6 @@ class GamingStatePart(PartBase):
 		from util.BetterPlayerObject import BetterPlayerObject
 		player_obj = self.cached_better_players.get(player_id)
 		if player_obj is None:
-			player_obj = BetterPlayerObject(self.GetPlayerObject(player_id))
+			player_obj = BetterPlayerObject(self, self.GetPlayerObject(player_id))
 			self.cached_better_players[player_id] = player_obj
 		return player_obj

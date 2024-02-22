@@ -6,7 +6,7 @@ from ..GamingStatePart import GamingStatePart
 class RootGamingState(GamingState):
 
     def __init__(self, part):
-        GamingState.__init__(self)
+        GamingState.__init__(self, None)
         self.part = part  # type: GamingStatePart
         self.init()
         self.with_enter(self._on_enter)

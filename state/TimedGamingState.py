@@ -5,8 +5,8 @@ from GamingState import GamingState
 
 
 class TimedGamingState(GamingState):
-    def __init__(self, duration):
-        GamingState.__init__(self)
+    def __init__(self, parent, duration):
+        GamingState.__init__(self, parent)
         self.duration = duration
         self.time_end = 0
         self.callbacks_timeout = list()

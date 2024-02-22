@@ -1,11 +1,33 @@
 # -*- coding: utf-8 -*-
+import traceback
 from collections import OrderedDict
+from ..GamingStatePart import GamingStatePart
+
+
+class EventCallbackSelf:
+    def __init__(self, state, event_name):
+        self.state = state  # type: GamingState
+        self.event_name = event_name  # type: str
+
+    def call(self, *args):
+        self.state.self_event_call(self.event_name, *args)
+
+
+class EventCallbackFull:
+    def __init__(self, state, namespace, system_name, event_name):
+        self.state = state  # type: GamingState
+        self.namespace = namespace  # type: str
+        self.system_name = system_name  # type: str
+        self.event_name = event_name  # type: str
+
+    def call(self, *args):
+        self.state.event_call(self.namespace, self.system_name, self.event_name, *args)
 
 
 class GamingState:
 
-    def __init__(self):
-        self.parent = None  # type: GamingState | None
+    def __init__(self, parent):
+        self.parent = parent  # type: GamingState | None
         self.current_sub_state = None  # type: str | None
         self.loop = False  # type: bool
 
@@ -13,7 +35,7 @@ class GamingState:
         self.sub_states = OrderedDict()  # type: dict[str, GamingState]
         # 监听器
         self.listened_events = dict()  # type: dict[tuple[str, str, str], list[callable]] # (namespace, system_name, event_name) -> callback
-
+        self.listened_self_events = dict()  # type dict[str, list[callable]] # event_name -> callback
         # 状态初始化时的回调
         self.callbacks_init = list()  # type: list[callable]
         # 状态开始时的回调
@@ -36,6 +58,7 @@ class GamingState:
                 callback()
             except Exception as e:
                 self.get_part().LogError("GamingState.init callback error: " + str(e))
+                traceback.print_exc()
 
     def enter(self):
         """
@@ -47,6 +70,7 @@ class GamingState:
                 callback()
             except Exception as e:
                 self.get_part().LogError("GamingState.enter callback error: " + str(e))
+                traceback.print_exc()
         # 如果该状态机包含子状态，那么自动进入子状态
         if len(self.sub_states) > 0:
             self.next_sub_state()
@@ -60,6 +84,7 @@ class GamingState:
                 callback()
             except Exception as e:
                 self.get_part().LogError("GamingState.exit callback error: " + str(e))
+                traceback.print_exc()
 
     def tick(self):
         """
@@ -71,11 +96,13 @@ class GamingState:
                 sub_state.tick()
             else:
                 self.get_part().LogError("尝试tick递归的sub_state: {}".format(self.current_sub_state))
+                traceback.print_exc()
         for callback in self.callbacks_tick:
             try:
                 callback()
             except Exception as e:
                 self.get_part().LogError("GamingState.tick callback error: " + str(e))
+                traceback.print_exc()
 
     def event_call(self, namespace, system_name, event_name, *args):
         """
@@ -94,15 +121,34 @@ class GamingState:
                     callback(*args)
                 except Exception as e:
                     self.get_part().LogError("GamingState.event_call callback error: " + str(e))
+                    traceback.print_exc()
         if self.current_sub_state is not None:
             self.sub_states[self.current_sub_state].event_call(namespace, system_name, event_name, *args)
+
+    def self_event_call(self, event_name, *args):
+        """
+        @description 监听器被调用
+        :param event_name: 事件名称
+        :type event_name: str
+        :param args: 参数
+        """
+        if event_name in self.listened_self_events:
+            for callback in self.listened_self_events[event_name]:
+                try:
+                    callback(*args)
+                except Exception as e:
+                    self.get_part().LogError("GamingState.self_event_call callback error: " + str(e))
+                    traceback.print_exc()
+        if self.current_sub_state is not None:
+            self.sub_states[self.current_sub_state].self_event_call(event_name, *args)
 
     # ====== API 方法 ======
 
     def get_part(self):
         """
-        获取零件Part实例
-        :rtype: GamingStatePart
+        @description 获取零件Part实例
+        :return: GamingStatePart
+        :rtype: GamingStatePart | None
         """
         if self.parent is not None:
             return self.parent.get_part()
@@ -144,22 +190,45 @@ class GamingState:
         if event_name not in self.listened_events:
             self.listened_events[(namespace, system_name, event_name)] = list()
         self.listened_events[(namespace, system_name, event_name)].append(callback)
-        self.get_part().ListenForEvent(namespace, system_name, event_name, self, callback)
+        event_callback = EventCallbackFull(self, namespace, system_name, event_name)
+        self.get_part().ListenForEvent(
+            namespace, system_name, event_name, event_callback,
+            event_callback.call
+        )
+
+    def listen_self_event(self, event_name, callback):
+        """
+        @description 监听自定义事件
+        :param event_name: 事件名称
+        :type event_name: str
+        :param callback: 回调函数(self, args...)
+        :type callback: callable
+        """
+        if event_name not in self.listened_self_events:
+            self.listened_self_events[event_name] = list()
+        self.listened_self_events[event_name].append(callback)
+        self.get_part().LogDebug("GamingState.listen_self_event {}".format(event_name))
+
+        event_callback = EventCallbackSelf(self, event_name)
+        self.get_part().ListenSelfEvent(
+            event_name,
+            event_callback,
+            event_callback.call
+        )
 
     def add_sub_state(self, name, state_supplier):
         """
         @description 添加子状态
         :param name: 子状态名称
         :type name: str
-        :param state_supplier: 一个返回子状态对象的lambda函数，例如：lambda: IdleState()
+        :param state_supplier: 一个返回子状态对象的lambda函数，例如：lambda parent: IdleState(parent)
         :type state_supplier: callable
         """
         if name in self.sub_states:
             raise ValueError("添加子状态时，状态名 {} 已存在".format(name))
-        state = state_supplier()  # type: GamingState
+        state = state_supplier(self)  # type: GamingState
         state.init()
         self.sub_states[name] = state
-        state.parent = self
 
     def remove_sub_state(self, state_name):
         """

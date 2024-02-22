@@ -65,20 +65,20 @@ def InitServer(self):
     """
     GamingStatePart.InitServer(self)
     self.root_state.set_loop()  # 设置是否始终循环
-    self.root_state.add_sub_state('s1', lambda: TestGamingState())
-    self.root_state.add_sub_state('s2', lambda: TestGamingStateElse())
-    self.root_state.add_sub_state('s3', lambda: TestGamingStateEmmm())
+    self.root_state.add_sub_state('s1', TestGamingState)  # 第一种方式，直接Class
+    self.root_state.add_sub_state('s2', lambda parent: TestGamingStateElse(parent))  # 第二种方式，lambda
+    self.root_state.add_sub_state('s3', lambda parent: TestGamingStateEmmm(parent))
     self.root_state.next_sub_state()  # 别忘了调用 next_sub_state() 来启动子状态
 ```
 
-为了编写业务状态，你需要创建一个新的class，继承于 GamingState：
+为了编写业务状态，你需要创建一个新的class，继承于 GamingState（注意需要传入parent）：
 
 ```python
 from ..GamingState.state.GamingState import GamingState
 
 class TestGamingState(GamingState):
-    def __init__(self):
-        GamingState.__init__(self)
+    def __init__(self, parent):
+        GamingState.__init__(self, parent)
 ```
 
 在实例化方法中，添加额外的生命周期逻辑：
@@ -86,8 +86,8 @@ class TestGamingState(GamingState):
 ```python
 class TestGamingState(GamingState):
     
-    def __init__(self):
-        GamingState.__init__(self)
+    def __init__(self, parent):
+        GamingState.__init__(self, parent)
         self.with_init(self.on_init)
         self.with_enter(self.on_enter)
         self.with_exit(self.on_exit)
@@ -108,8 +108,8 @@ class TestGamingState(GamingState):
 ```python
 class TestGamingState(GamingState):
     
-    def __init__(self):
-        GamingState.__init__(self)
+    def __init__(self, parent):
+        GamingState.__init__(self, parent)
         ...
         self.listen_event('PlayerDieEvent', self.on_player_death)
         
@@ -125,8 +125,8 @@ class TestGamingState(GamingState):
 from ..GamingState.state.TimedGamingState import TimedGamingState
 
 class TestGamingState(TimedGamingState):
-    def __init__(self):
-        TimedGamingState.__init__(self, 10)  # 实例化的参为数duration，单位秒，类型为float
+    def __init__(self, parent):
+        TimedGamingState.__init__(self, parent, 10)  # 实例化的参为数duration，单位秒，类型为float
         self.with_time_out(self.on_time_out)
         self.with_tick(self.on_tick)
     
