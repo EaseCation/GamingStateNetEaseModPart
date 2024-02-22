@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 from Preset.Model.PartBase import PartBase
 from Preset.Model.GameObject import registerGenericClass
-# 自定义import可千万不能写在顶上，而是要写在下面，巨大的坑啊
 
+# 自定义import可千万不能写在顶上，而是要写在下面，巨大的坑啊
+try:
+	from ..GamingState.state.RootGamingState import RootGamingState
+	from util.BetterPlayerObject import BetterPlayerObject
+except:
+	pass
 
 @registerGenericClass("GamingStatePart")
 class GamingStatePart(PartBase):
@@ -70,11 +75,22 @@ class GamingStatePart(PartBase):
 		"""
 		PartBase.DestroyServer(self)
 
+	def get_all_better_players(self):
+		"""
+		获取所有在线的玩家对象
+		:return: 所有在线的玩家对象
+		:rtype: list[BetterPlayerObject]
+		"""
+		players = []
+		for player_id in self.GetLoadedPlayers():
+			players.append(self.get_better_player_obj(player_id))
+		return players
+
 	def get_better_player_obj(self, player_id):
 		"""
 		获取玩家对象
 		:type player_id: str
-		:rtype BetterPlayerObject
+		:rtype: BetterPlayerObject
 		"""
 		from util.BetterPlayerObject import BetterPlayerObject
 		player_obj = self.cached_better_players.get(player_id)

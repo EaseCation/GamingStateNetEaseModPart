@@ -3,39 +3,24 @@ import traceback
 from collections import OrderedDict
 from ..GamingStatePart import GamingStatePart
 
+class EventCallback:
+    def __init__(self, callback):
+        self.callback = callback
 
-class EventCallbackSelf:
-    def __init__(self, state, event_name):
-        self.state = state  # type: GamingState
-        self.event_name = event_name  # type: str
-
-    def call(self, *args):
-        self.state.self_event_call(self.event_name, *args)
-
-
-class EventCallbackFull:
-    def __init__(self, state, namespace, system_name, event_name):
-        self.state = state  # type: GamingState
-        self.namespace = namespace  # type: str
-        self.system_name = system_name  # type: str
-        self.event_name = event_name  # type: str
-
-    def call(self, *args):
-        self.state.event_call(self.namespace, self.system_name, self.event_name, *args)
+    def call(self, args):
+        self.callback(args)
 
 
 class GamingState:
 
     def __init__(self, parent):
         self.parent = parent  # type: GamingState | None
-        self.current_sub_state = None  # type: str | None
+        self.current_sub_state_name = None  # type: str | None
+        self.current_sub_state = None  # type: GamingState | None
         self.loop = False  # type: bool
 
         # 子状态机，是一个有序dict
-        self.sub_states = OrderedDict()  # type: dict[str, GamingState]
-        # 监听器
-        self.listened_events = dict()  # type: dict[tuple[str, str, str], list[callable]] # (namespace, system_name, event_name) -> callback
-        self.listened_self_events = dict()  # type dict[str, list[callable]] # event_name -> callback
+        self.sub_states = OrderedDict()  # type: dict[str, callable] # (id) -> state_supplier
         # 状态初始化时的回调
         self.callbacks_init = list()  # type: list[callable]
         # 状态开始时的回调
@@ -64,7 +49,6 @@ class GamingState:
         """
         @description 进入状态（不推荐override，而是调用with_enter）
         """
-        self.get_part().LogDebug("GamingState.enter with callbacks: {}".format(str(self.callbacks_enter)))
         for callback in self.callbacks_enter:
             try:
                 callback()
@@ -90,57 +74,17 @@ class GamingState:
         """
         @description 逻辑驱动（不推荐override，而是调用with_tick）
         """
-        if self.current_sub_state is not None:
-            sub_state = self.sub_states[self.current_sub_state]
-            if sub_state != self:
-                sub_state.tick()
+        if self.current_sub_state_name is not None and self.current_sub_state is not None:
+            if self.current_sub_state != self:
+                self.current_sub_state.tick()
             else:
-                self.get_part().LogError("尝试tick递归的sub_state: {}".format(self.current_sub_state))
-                traceback.print_exc()
+                self.get_part().LogError("尝试tick递归的sub_state: {}".format(self.current_sub_state_name))
         for callback in self.callbacks_tick:
             try:
                 callback()
             except Exception as e:
                 self.get_part().LogError("GamingState.tick callback error: " + str(e))
                 traceback.print_exc()
-
-    def event_call(self, namespace, system_name, event_name, *args):
-        """
-        @description 监听器被调用
-        :param namespace: 命名空间
-        :type namespace: str
-        :param system_name: 系统名称
-        :type system_name: str
-        :param event_name: 事件名称
-        :type event_name: str
-        :param args: 参数
-        """
-        if event_name in self.listened_events:
-            for callback in self.listened_events[(namespace, system_name, event_name)]:
-                try:
-                    callback(*args)
-                except Exception as e:
-                    self.get_part().LogError("GamingState.event_call callback error: " + str(e))
-                    traceback.print_exc()
-        if self.current_sub_state is not None:
-            self.sub_states[self.current_sub_state].event_call(namespace, system_name, event_name, *args)
-
-    def self_event_call(self, event_name, *args):
-        """
-        @description 监听器被调用
-        :param event_name: 事件名称
-        :type event_name: str
-        :param args: 参数
-        """
-        if event_name in self.listened_self_events:
-            for callback in self.listened_self_events[event_name]:
-                try:
-                    callback(*args)
-                except Exception as e:
-                    self.get_part().LogError("GamingState.self_event_call callback error: " + str(e))
-                    traceback.print_exc()
-        if self.current_sub_state is not None:
-            self.sub_states[self.current_sub_state].self_event_call(event_name, *args)
 
     # ====== API 方法 ======
 
@@ -187,10 +131,7 @@ class GamingState:
         :param callback: 回调函数(self, args...)
         :type callback: callable
         """
-        if event_name not in self.listened_events:
-            self.listened_events[(namespace, system_name, event_name)] = list()
-        self.listened_events[(namespace, system_name, event_name)].append(callback)
-        event_callback = EventCallbackFull(self, namespace, system_name, event_name)
+        event_callback = EventCallback(callback)
         self.get_part().ListenForEvent(
             namespace, system_name, event_name, event_callback,
             event_callback.call
@@ -204,12 +145,7 @@ class GamingState:
         :param callback: 回调函数(self, args...)
         :type callback: callable
         """
-        if event_name not in self.listened_self_events:
-            self.listened_self_events[event_name] = list()
-        self.listened_self_events[event_name].append(callback)
-        self.get_part().LogDebug("GamingState.listen_self_event {}".format(event_name))
-
-        event_callback = EventCallbackSelf(self, event_name)
+        event_callback = EventCallback(callback)
         self.get_part().ListenSelfEvent(
             event_name,
             event_callback,
@@ -226,9 +162,7 @@ class GamingState:
         """
         if name in self.sub_states:
             raise ValueError("添加子状态时，状态名 {} 已存在".format(name))
-        state = state_supplier(self)  # type: GamingState
-        state.init()
-        self.sub_states[name] = state
+        self.sub_states[name] = state_supplier
 
     def remove_sub_state(self, state_name):
         """
@@ -239,17 +173,9 @@ class GamingState:
         :rtype: GamingState | None
         """
         # 如果移除了一个正在进行中的状态，则自动切换到下一状态
-        if self.current_sub_state == state_name:
+        if self.current_sub_state_name == state_name:
             self.next_sub_state()
         return self.sub_states.pop(state_name)
-
-    def get_current_sub_state(self):
-        """
-        @description 获取当前子状态
-        :return: 当前子状态
-        :rtype: GamingState | None
-        """
-        return self.sub_states[self.current_sub_state]
 
     def is_state_running(self):
         """
@@ -257,9 +183,9 @@ class GamingState:
         """
         if self.parent is None:
             return True
-        elif self.parent.current_sub_state is None:
+        elif self.parent.current_sub_state_name is None:
             return False
-        return self.parent.sub_states[self.parent.current_sub_state] == self
+        return self.parent.current_sub_state == self
 
     def get_runtime_state_name(self):
         """
@@ -268,7 +194,7 @@ class GamingState:
         :rtype: str | None
         """
         if self.parent is not None and self.is_state_running():
-            return self.parent.current_sub_state
+            return self.parent.current_sub_state_name
         return None
 
     def next_sub_state(self):
@@ -277,37 +203,36 @@ class GamingState:
         """
         keys = list(self.sub_states.keys())
 
-        if self.current_sub_state is None:
+        if self.current_sub_state_name is None:
             if len(keys) > 0:
-                self.current_sub_state = keys[0]
-                state = self.sub_states[self.current_sub_state]
-                self.get_part().LogDebug("next_sub_state: " + self.current_sub_state)
-                state.enter()
+                next_state_name = keys[0]
+                self.toggle_sub_state(next_state_name)
+                self.get_part().LogDebug("next_sub_state: None -> " + next_state_name)
             else:
                 for callback in self.callbacks_no_such_next_sub_state:
                     callback()
         else:
-            current = self.sub_states[self.current_sub_state]
-            if current is None:
-                raise ValueError("Current states {} is missing".format(self.current_sub_state))
-            index = keys.index(self.current_sub_state)
+            if self.current_sub_state is None:
+                raise ValueError("Current states {} is missing".format(self.current_sub_state_name))
+            index = keys.index(self.current_sub_state_name)
             if index + 1 < len(keys):
-                current.exit()
-                self.current_sub_state = keys[index + 1]
-                state = self.sub_states[self.current_sub_state]
-                self.get_part().LogDebug("next_sub_state: " + self.current_sub_state)
-                state.enter()
+                previous_state_name = self.current_sub_state_name
+                next_state_name = keys[index + 1]
+                self.toggle_sub_state(next_state_name)
+                self.get_part().LogDebug("next_sub_state: {} -> {}".format(previous_state_name, next_state_name))
             else:
                 if self.loop:
-                    current.exit()
+                    self.current_sub_state.exit()
+                    self.current_sub_state_name = None
                     self.current_sub_state = None
                     self.next_sub_state()
                 else:
                     for callback in self.callbacks_no_such_next_sub_state:
                         callback()
-                    if self.is_state_running() and self.current_sub_state == keys[
-                        -1]:  # 这边需要判断进行了callback后，目前状态机是否被改变，如果被改变，表示在callback中修改了状态
-                        current.exit()
+                    if self.is_state_running() and self.current_sub_state_name == keys[-1]:  # 这边需要判断进行了callback后，目前状态机是否被改变，如果被改变，表示在callback中修改了状态
+                        self.current_sub_state.exit()
+                        self.current_sub_state_name = None
+                        self.current_sub_state = None
                         if self.parent is not None:
                             self.parent.next_sub_state()
 
@@ -320,9 +245,12 @@ class GamingState:
         if state_name not in self.sub_states:
             raise ValueError("State {} not found".format(state_name))
         if self.current_sub_state is not None:
-            self.sub_states[self.current_sub_state].exit()
-        self.current_sub_state = state_name
-        self.sub_states[state_name].enter()
+            self.current_sub_state.exit()
+        self.current_sub_state_name = state_name
+        state_factory = self.sub_states[state_name]
+        self.current_sub_state = state_factory(self)
+        self.current_sub_state.init()
+        self.current_sub_state.enter()
 
     def set_loop(self, loop=True):
         """

@@ -39,7 +39,6 @@ class TimedGamingState(GamingState):
     # 内部的状态机回调
 
     def _timed_on_enter(self):
-        self.get_part().LogDebug("TimedGamingState.on_enter")
         self.reset_timer()
 
     def _timed_on_tick(self):
