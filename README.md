@@ -66,8 +66,8 @@ def InitServer(self):
     GamingStatePart.InitServer(self)
     self.root_state.set_loop()  # 设置是否始终循环
     self.root_state.add_sub_state('s1', TestGamingState)  # 第一种方式，直接Class
-    self.root_state.add_sub_state('s2', lambda parent: TestGamingStateElse(parent))  # 第二种方式，lambda
-    self.root_state.add_sub_state('s3', lambda parent: TestGamingStateEmmm(parent))
+    self.root_state.add_sub_state('s2', TestGamingStateElse, arg)  # 如果带有额外参数，需要加在后方
+    self.root_state.add_sub_state('s3', lambda parent: TestGamingStateEmmm(parent))  # 使用lambda传入额外参数会有延迟绑定
     self.root_state.next_sub_state()  # 别忘了调用 next_sub_state() 来启动子状态
 ```
 

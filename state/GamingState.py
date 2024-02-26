@@ -152,17 +152,19 @@ class GamingState:
             event_callback.call
         )
 
-    def add_sub_state(self, name, state_supplier):
+    def add_sub_state(self, name, state_supplier, *args, **kwargs):
         """
         @description 添加子状态
         :param name: 子状态名称
         :type name: str
-        :param state_supplier: 一个返回子状态对象的lambda函数，例如：lambda parent: IdleState(parent)
+        :param state_supplier: 一个返回子状态对象的lambda函数，可以接受任意数量的位置参数和关键字参数
         :type state_supplier: callable
+        :param args: 传递给state_supplier的位置参数
+        :param kwargs: 传递给state_supplier的关键字参数
         """
         if name in self.sub_states:
             raise ValueError("添加子状态时，状态名 {} 已存在".format(name))
-        self.sub_states[name] = state_supplier
+        self.sub_states[name] = lambda parent: state_supplier(parent, *args, **kwargs)
 
     def remove_sub_state(self, state_name):
         """
@@ -206,8 +208,8 @@ class GamingState:
         if self.current_sub_state_name is None:
             if len(keys) > 0:
                 next_state_name = keys[0]
-                self.toggle_sub_state(next_state_name)
                 self.get_part().LogDebug("next_sub_state: None -> " + next_state_name)
+                self.toggle_sub_state(next_state_name)
             else:
                 for callback in self.callbacks_no_such_next_sub_state:
                     callback()
@@ -218,8 +220,8 @@ class GamingState:
             if index + 1 < len(keys):
                 previous_state_name = self.current_sub_state_name
                 next_state_name = keys[index + 1]
-                self.toggle_sub_state(next_state_name)
                 self.get_part().LogDebug("next_sub_state: {} -> {}".format(previous_state_name, next_state_name))
+                self.toggle_sub_state(next_state_name)
             else:
                 if self.loop:
                     self.current_sub_state.exit()
