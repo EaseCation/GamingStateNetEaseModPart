@@ -146,3 +146,17 @@ class BetterPlayerObject(PlayerObject):
 
     def play_note_pling_sound(self, pos, key):
         self.play_sound("note.pling", pos, 1, BetterPlayerObject.get_note_sound_pitch(key))
+
+    def teleport(self, pos, yaw=None, pitch=None, dimension=None):
+        if yaw is None:
+            yaw = self.GetRot()[1]
+        if pitch is None:
+            pitch = self.GetRot()[0]
+
+        if dimension is None or self.GetDimensionId() == dimension:
+            self.SetPos(pos)
+            self.SetRot((pitch, yaw))
+        else:
+            pos = (pos[0], pos[1] + 1.62, pos[2])  # 这边需要加上眼睛高度（不知道为什么同世界传送就又不用加）
+            self.ChangeDimension(dimension, pos)
+            self.SetRot((pitch, yaw))

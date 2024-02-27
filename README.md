@@ -93,7 +93,7 @@ class TestGamingState(GamingState):
         self.with_exit(self.on_exit)
         
     def on_init(self):
-        # 在GamingState中，随时通过self.part获取到零件对象
+        # 在GamingState中，随时通过self.get_part()获取到零件对象
         self.get_part().LogDebug('TestGamingState init')
         
     def on_enter(self):
@@ -105,16 +105,24 @@ class TestGamingState(GamingState):
 
 在实例化方法中，添加事件监听器：
 
+> 状态中的事件监听器，意义在于，这些事件只有在当前状态生效时才会触发。这样可以避免一些复杂的面条代码来判断是否应该执行事件。  
+  例如在父状态中监听玩家死亡，而在子状态中监听玩家与某个方块的交互。
+
 ```python
 class TestGamingState(GamingState):
     
     def __init__(self, parent):
         GamingState.__init__(self, parent)
         ...
-        self.listen_event('PlayerDieEvent', self.on_player_death)
+        self.listen_event('namespace', 'systemName', 'PlayerDieEvent', self.on_player_death)  # 自定义监听各种事件
+        self.listen_engine_event('PlayerDieEvent', self.on_player_death)  # 引擎事件
+        self.listen_preset_event('CustomPresetEvent', self.on_preset_custom)  # 来自预设系统的事件
+        self.listen_self_event('VectoryEvent', self.on_vectory)  # 来自自己Part的事件
         
     def on_player_death(self, args):
         print('TestGamingState.PlayerDieEvent', str(args))
+
+    ...
 ```
 
 目前额外提供了几个预置的状态，可以通过继承来实现：
