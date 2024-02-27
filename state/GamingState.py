@@ -3,12 +3,29 @@ import traceback
 from collections import OrderedDict
 from ..GamingStatePart import GamingStatePart
 
+
+class EventListenContext:
+    """
+    用于存储需要监听的事件的上下文
+    在enter时监听，在exit时取消监听
+    """
+    def __init__(self, namespace, system_name, event_name, instance, func):
+        self.namespace = namespace
+        self.system_name = system_name
+        self.event_name = event_name
+        self.instance = instance
+        self.func = func
+
+
 class EventCallback:
-    def __init__(self, callback):
+    def __init__(self, state, callback):
+        self.state = state
         self.callback = callback
 
     def call(self, args):
-        self.callback(args)
+        # 触发时，先判断状态是否还在运行
+        if self.state.is_state_running():
+            self.callback(args)
 
 
 class GamingState:
@@ -19,7 +36,10 @@ class GamingState:
         self.current_sub_state = None  # type: GamingState | None
         self.loop = False  # type: bool
 
-        # 子状态机，是一个有序dict
+        self.listened_events = list()  # type: list[EventListenContext]
+        self.listened_self_events = list()  # type: list[EventListenContext]
+
+        # 子状态机的工厂，是一个有序dict
         self.sub_states = OrderedDict()  # type: dict[str, callable] # (id) -> state_supplier
         # 状态初始化时的回调
         self.callbacks_init = list()  # type: list[callable]
@@ -49,6 +69,16 @@ class GamingState:
         """
         @description 进入状态（不推荐override，而是调用with_enter）
         """
+        # 监听器
+        for listener in self.listened_events:
+            self.get_part().ListenForEvent(
+                listener.namespace, listener.system_name, listener.event_name, listener.instance, listener.func
+            )
+        for listener in self.listened_self_events:
+            self.get_part().ListenSelfEvent(
+                listener.event_name, listener.instance, listener.func
+            )
+        # 回调
         for callback in self.callbacks_enter:
             try:
                 callback()
@@ -63,6 +93,16 @@ class GamingState:
         """
         @description 退出状态（不推荐override，而是调用with_exit）
         """
+        # 监听器
+        for listener in self.listened_events:
+            self.get_part().UnListenForEvent(
+                listener.namespace, listener.system_name, listener.event_name, listener.instance, listener.func
+            )
+        for listener in self.listened_self_events:
+            self.get_part().UnListenSelfEvent(
+                listener.event_name, listener.instance, listener.func
+            )
+        # 回调
         for callback in self.callbacks_exit:
             try:
                 callback()
@@ -131,11 +171,14 @@ class GamingState:
         :param callback: 回调函数(self, args...)
         :type callback: callable
         """
-        event_callback = EventCallback(callback)
-        self.get_part().ListenForEvent(
-            namespace, system_name, event_name, event_callback,
-            event_callback.call
-        )
+        event_callback = EventCallback(self, callback)
+        self.listened_events.append(EventListenContext(namespace, system_name, event_name, event_callback, event_callback.call))
+        if self.is_state_running():
+            self.get_part().ListenForEvent(
+                namespace, system_name, event_name, event_callback,
+                event_callback.call
+            )
+        # 会在enter时监听，exit时取消监听
 
     def listen_self_event(self, event_name, callback):
         """
@@ -145,12 +188,15 @@ class GamingState:
         :param callback: 回调函数(self, args...)
         :type callback: callable
         """
-        event_callback = EventCallback(callback)
-        self.get_part().ListenSelfEvent(
-            event_name,
-            event_callback,
-            event_callback.call
-        )
+        event_callback = EventCallback(self, callback)
+        self.listened_self_events.append(EventListenContext(None, None, event_name, event_callback, event_callback.call))
+        if self.is_state_running():
+            self.get_part().ListenSelfEvent(
+                event_name,
+                event_callback,
+                event_callback.call
+            )
+        # 会在enter时监听，exit时取消监听
 
     def add_sub_state(self, name, state_supplier, *args, **kwargs):
         """
