@@ -1,6 +1,8 @@
 import math
 
 from Preset.Model.Player.PlayerObject import PlayerObject
+from mod.common.minecraftEnum import ItemPosType, PlayerUISlot
+
 from ..GamingStatePart import GamingStatePart
 
 class BetterPlayerObject(PlayerObject):
@@ -160,3 +162,19 @@ class BetterPlayerObject(PlayerObject):
             pos = (pos[0], pos[1] + 1.62, pos[2])  # 这边需要加上眼睛高度（不知道为什么同世界传送就又不用加）
             self.ChangeDimension(dimension, pos)
             self.SetRot((pitch, yaw))
+
+    def set_game_type(self, mode):
+        comp_player = self.part.GetApi().GetEngineCompFactory().CreatePlayer(self.GetPlayerId())
+        comp_player.SetPlayerGameType(mode)
+
+    def clear_inventory(self):
+        comp = self.CreateItemComponent(self.GetPlayerId())
+
+        items_dict_map = {}
+        for i in range(36):
+            items_dict_map[(ItemPosType.INVENTORY, i)] = None
+
+        comp.SetPlayerAllItems(items_dict_map)
+        comp.SetPlayerUIItem(self.GetPlayerId(), PlayerUISlot.CursorSelected, None, False)
+        for i in range(PlayerUISlot.Crafting2x2Input1, PlayerUISlot.Crafting2x2Input4):
+            comp.SetPlayerUIItem(self.GetPlayerId(), i, None, False)
