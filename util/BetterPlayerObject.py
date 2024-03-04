@@ -170,9 +170,12 @@ class BetterPlayerObject(PlayerObject):
     def clear_inventory(self):
         comp = self.CreateItemComponent(self.GetPlayerId())
 
+        inv = comp.GetPlayerAllItems(ItemPosType.INVENTORY)
+
         items_dict_map = {}
-        for i in range(36):
-            items_dict_map[(ItemPosType.INVENTORY, i)] = None
+        for i in range(len(inv)):
+            if inv[i] is not None:
+                items_dict_map[(ItemPosType.INVENTORY, i)] = None
 
         comp.SetPlayerAllItems(items_dict_map)
         comp.SetPlayerUIItem(self.GetPlayerId(), PlayerUISlot.CursorSelected, None, False)
