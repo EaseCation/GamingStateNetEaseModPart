@@ -177,6 +177,11 @@ class BetterPlayerObject(PlayerObject):
             if inv[i] is not None:
                 items_dict_map[(ItemPosType.INVENTORY, i)] = None
 
+        armors = comp.GetPlayerAllItems(ItemPosType.ARMOR)
+        for i in range(len(armors)):
+            if armors[i] is not None:
+                items_dict_map[(ItemPosType.ARMOR, i)] = None
+
         comp.SetPlayerAllItems(items_dict_map)
         comp.SetPlayerUIItem(self.GetPlayerId(), PlayerUISlot.CursorSelected, None, False)
         for i in range(PlayerUISlot.Crafting2x2Input1, PlayerUISlot.Crafting2x2Input4):

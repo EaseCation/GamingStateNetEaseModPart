@@ -26,6 +26,7 @@ class GamingStatePart(PartBase):
 		@description 客户端的零件对象初始化入口
 		"""
 		PartBase.InitClient(self)
+		self.ListenSelfEvent('S2CPlaySoundEvent', self, self.client_play_sound_event)
 
 	def InitServer(self):
 		"""
@@ -47,7 +48,6 @@ class GamingStatePart(PartBase):
 		@description 客户端的零件对象逻辑驱动入口
 		"""
 		PartBase.TickClient(self)
-		self.ListenSelfEvent('S2CPlaySoundEvent', self, self.client_play_sound_event)
 
 	def client_play_sound_event(self, args):
 		if args['player_id'] != self.GetLocalPlayerId():

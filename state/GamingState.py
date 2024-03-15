@@ -257,6 +257,7 @@ class GamingState:
                 self.get_part().LogDebug("next_sub_state: None -> " + next_state_name)
                 self.toggle_sub_state(next_state_name)
             else:
+                self.parent.next_sub_state()
                 for callback in self.callbacks_no_such_next_sub_state:
                     callback()
         else:

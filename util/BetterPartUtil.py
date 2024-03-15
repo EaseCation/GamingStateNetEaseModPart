@@ -78,6 +78,12 @@ class BetterPartUtil:
         """
         self.part.SetCommand("title @a actionbar {}".format(text))
 
+    def broadcast_title_reset(self):
+        """
+        重置Title
+        """
+        self.part.SetCommand("title @a reset")
+
     def broadcast_title_times(self, fadein=20, duration=20, fadeout=5):
         """
         设置Title的显示时间
