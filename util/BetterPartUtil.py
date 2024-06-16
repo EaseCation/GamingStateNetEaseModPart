@@ -26,15 +26,40 @@ replacements = {
     # Add additional mappings for icons and other special characters
 }
 
+
 class BetterPartUtil:
 
     @staticmethod
     def format_text(raw_msg, **args):
-        for arg in replacements:
-            raw_msg = raw_msg.replace("{" + arg + "}", str(replacements[arg]))
+        # Ensure raw_msg is a unicode object
+        if isinstance(raw_msg, str):
+            try:
+                raw_msg = unicode(raw_msg, 'utf-8')
+            except UnicodeDecodeError:
+                # raw_msg might already be a unicode string
+                raw_msg = raw_msg.decode('utf-8')
+        elif not isinstance(raw_msg, unicode):
+            raise ValueError("Input raw_msg must be a str or unicode type")
+
+        # Ensure all args values are unicode objects
         for arg in args:
-            raw_msg = raw_msg.replace("{" + arg + "}", str(args[arg]))
-        return raw_msg
+            if isinstance(args[arg], str):
+                try:
+                    args[arg] = unicode(args[arg], 'utf-8')
+                except UnicodeDecodeError:
+                    args[arg] = args[arg].decode('utf-8')
+            elif not isinstance(args[arg], unicode):
+                raise ValueError("All args values must be str or unicode type")
+
+        # Perform replacements
+        for key in replacements:
+            raw_msg = raw_msg.replace(u"{" + key + u"}", replacements[key])
+
+        for key in args:
+            raw_msg = raw_msg.replace(u"{" + key + u"}", args[key])
+
+        # Return as utf-8 encoded string
+        return raw_msg.encode('utf-8')
 
     def __init__(self, part):
         """
