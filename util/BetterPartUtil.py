@@ -31,35 +31,18 @@ class BetterPartUtil:
 
     @staticmethod
     def format_text(raw_msg, **args):
-        # Ensure raw_msg is a unicode object
-        if isinstance(raw_msg, str):
-            try:
-                raw_msg = unicode(raw_msg, 'utf-8')
-            except UnicodeDecodeError:
-                # raw_msg might already be a unicode string
-                raw_msg = raw_msg.decode('utf-8')
-        elif not isinstance(raw_msg, unicode):
-            raise ValueError("Input raw_msg must be a str or unicode type")
-
-        # Ensure all args values are unicode objects
+        for arg in replacements:
+            # Ensure the replacement is done with the correct encoding
+            replacement_str = replacements[arg]
+            if isinstance(replacement_str, unicode):
+                replacement_str = replacement_str.encode('utf-8')
+            raw_msg = raw_msg.replace("{" + arg + "}", replacement_str)
         for arg in args:
-            if isinstance(args[arg], str):
-                try:
-                    args[arg] = unicode(args[arg], 'utf-8')
-                except UnicodeDecodeError:
-                    args[arg] = args[arg].decode('utf-8')
-            elif not isinstance(args[arg], unicode):
-                raise ValueError("All args values must be str or unicode type")
-
-        # Perform replacements
-        for key in replacements:
-            raw_msg = raw_msg.replace(u"{" + key + u"}", replacements[key])
-
-        for key in args:
-            raw_msg = raw_msg.replace(u"{" + key + u"}", args[key])
-
-        # Return as utf-8 encoded string
-        return raw_msg.encode('utf-8')
+            arg_str = args[arg]
+            if isinstance(arg_str, unicode):
+                arg_str = arg_str.encode('utf-8')
+            raw_msg = raw_msg.replace("{" + arg + "}", arg_str)
+        return raw_msg
 
     def __init__(self, part):
         """
