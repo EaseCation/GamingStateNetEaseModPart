@@ -10,9 +10,17 @@ class BetterPlayerObject(PlayerObject):
     def __init__(self, part, player_obj):
         PlayerObject.__init__(self)
         self.part = part  # type: GamingStatePart
-        for attr_name, attr_value in vars(player_obj).items():
-            # 使用setattr将每个属性赋值给当前对象
-            setattr(self, attr_name, attr_value)
+        for attr_name in dir(player_obj):
+            if not attr_name.startswith('__') and not attr_name == 'system' and not callable(getattr(player_obj, attr_name)):
+                try:
+                    # 尝试设置属性
+                    setattr(self, attr_name, getattr(player_obj, attr_name))
+                except AttributeError:
+                    # 无法设置属性时打印警告信息
+                    print("警告: 无法设置属性 '" + attr_name + "'，该属性可能是只读的或与内建属性冲突")
+                except Exception as e:
+                    # 捕获其他异常并打印
+                    print("错误: 在设置属性 '" + attr_name + "' 时发生异常: " + e)
 
     def clear_title(self):
         self.SetCommand("title {} clear".format(self.GetName()))

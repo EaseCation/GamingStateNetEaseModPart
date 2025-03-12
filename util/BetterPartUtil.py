@@ -39,8 +39,12 @@ class BetterPartUtil:
             raw_msg = raw_msg.replace("{" + arg + "}", replacement_str)
         for arg in args:
             arg_str = args[arg]
-            if isinstance(arg_str, unicode):
+            if isinstance(arg_str, str):
+                pass
+            elif isinstance(arg_str, unicode):
                 arg_str = arg_str.encode('utf-8')
+            else:
+                arg_str = str(arg_str)
             raw_msg = raw_msg.replace("{" + arg + "}", arg_str)
         return raw_msg
 

@@ -61,6 +61,14 @@ class TimedGamingState(GamingState):
         """
         return self.time_end - time.time()
 
+    def get_seconds_passed(self):
+        """
+        @description 获取已经过去的时间
+        :return: 已经过去的时间（秒）
+        :rtype: float
+        """
+        return self.duration - self.get_seconds_left()
+
     def get_formatted_time_left(self):
         """
         @description 获取格式化的剩余时间
