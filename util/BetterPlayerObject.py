@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 import math
-
 from Preset.Model.Player.PlayerObject import PlayerObject
 from mod.common.minecraftEnum import ItemPosType, PlayerUISlot
 
 from ..GamingStatePart import GamingStatePart
+
 
 class BetterPlayerObject(PlayerObject):
     def __init__(self, part, player_obj):
         PlayerObject.__init__(self)
         self.part = part  # type: GamingStatePart
         for attr_name in dir(player_obj):
-            if not attr_name.startswith('__') and not attr_name == 'system' and not callable(getattr(player_obj, attr_name)):
+            if not attr_name.startswith('__') and not attr_name == 'system' and not callable(
+                    getattr(player_obj, attr_name)):
                 try:
                     # 尝试设置属性
                     setattr(self, attr_name, getattr(player_obj, attr_name))
@@ -23,7 +24,7 @@ class BetterPlayerObject(PlayerObject):
                     print("错误: 在设置属性 '" + attr_name + "' 时发生异常: " + e)
 
     def clear_title(self):
-        self.SetCommand("title {} clear".format(self.GetName()))
+        self.SetCommand("title @s clear", self.GetPlayerId())
 
     def send_action_bar(self, action_bar):
         """
@@ -31,7 +32,7 @@ class BetterPlayerObject(PlayerObject):
         :param action_bar: 文本内容
         :type action_bar: str
         """
-        self.SetCommand("title {} actionbar {}".format(self.GetName(), action_bar))
+        self.SetCommand("title @s actionbar {}".format(action_bar), self.GetPlayerId())
 
     def set_title_times(self, fadein=20, duration=20, fadeout=5):
         """
@@ -50,7 +51,7 @@ class BetterPlayerObject(PlayerObject):
             duration = 20
         if fadeout is None:
             fadeout = 5
-        self.SetCommand("title {} times {} {} {}".format(self.GetName(), fadein, duration, fadeout))
+        self.SetCommand("title @s times {} {} {}".format(fadein, duration, fadeout), self.GetPlayerId())
 
     def send_title(self, title, sub_title=None, fadein=None, duration=None, fadeout=None):
         """
@@ -68,11 +69,11 @@ class BetterPlayerObject(PlayerObject):
         """
         if fadein is not None or duration is not None or fadeout is not None:
             self.set_title_times(fadein, duration, fadeout)
-        else:
-            self.part.SetCommand("title {} reset".format(self.GetName()))
+
+        self.SetCommand("title @s title {}".format(title), self.GetPlayerId())
+
         if sub_title is not None:
-            self.SetCommand("title {} subtitle {}".format(self.GetName(), sub_title))
-        self.SetCommand("title {} title {}".format(self.GetName(), title))
+            self.SetCommand("title @s subtitle {}".format(sub_title), self.GetPlayerId())
 
     def send_message(self, message, color='\xc2\xa7f'):
         """
@@ -141,15 +142,15 @@ class BetterPlayerObject(PlayerObject):
         :param volume: 音量
         :type volume: float
         :param pitch: 音调
-        :type pitch: float
+        :type pitch: floatXQXQ
         """
-        self.SetCommand("playsound {sound} {player} {pos} {volume} {pitch}".format(
-            sound = sound,
-            player = self.GetName(),
-            pos = "{} {} {}".format(pos[0], pos[1], pos[2]),
-            volume = volume,
-            pitch = pitch
-        ))
+
+        self.SetCommand("playsound {sound} @s {pos} {volume} {pitch}".format(
+            sound=sound,
+            pos="{} {} {}".format(pos[0], pos[1], pos[2]),
+            volume=volume,
+            pitch=pitch
+        ), self.GetPlayerId())
 
     @staticmethod
     def get_note_sound_pitch(key):
