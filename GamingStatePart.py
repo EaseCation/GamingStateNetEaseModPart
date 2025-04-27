@@ -3,11 +3,10 @@ from Preset.Model.PartBase import PartBase
 from Preset.Model.GameObject import registerGenericClass
 
 # 自定义import可千万不能写在顶上，而是要写在下面，巨大的坑啊
-try:
+if False:
 	from ..GamingState.state.RootGamingState import RootGamingState
 	from util.BetterPlayerObject import BetterPlayerObject
-except:
-	pass
+
 
 @registerGenericClass("GamingStatePart")
 class GamingStatePart(PartBase):
