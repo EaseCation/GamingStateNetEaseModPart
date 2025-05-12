@@ -41,7 +41,8 @@ class GamingStatePart(PartBase):
 		"""
 		@description 服务端玩家离开游戏事件
 		"""
-		self.cached_better_players.pop(args['id'])
+		return
+		# self.cached_better_players.pop(args['id'])
 
 	def TickClient(self):
 		"""
@@ -93,8 +94,8 @@ class GamingStatePart(PartBase):
 		:rtype: BetterPlayerObject
 		"""
 		from util.BetterPlayerObject import BetterPlayerObject
-		player_obj = self.cached_better_players.get(player_id)
-		if player_obj is None:
-			player_obj = BetterPlayerObject(self, self.GetPlayerObject(player_id))
-			self.cached_better_players[player_id] = player_obj
-		return player_obj
+		# player_obj = self.cached_better_players.get(player_id)
+		# if player_obj is None:
+		# 	player_obj = BetterPlayerObject(self, self.GetPlayerObject(player_id))
+		# 	self.cached_better_players[player_id] = player_obj
+		return BetterPlayerObject(self, self.GetPlayerObject(player_id))

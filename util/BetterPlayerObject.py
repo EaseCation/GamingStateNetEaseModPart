@@ -169,7 +169,7 @@ class BetterPlayerObject(PlayerObject):
             self.SetPos(pos)
             self.SetRot((pitch, yaw))
         else:
-            pos = (pos[0], pos[1] + 1.62, pos[2])  # 这边需要加上眼睛高度（不知道为什么同世界传送就又不用加）
+            pos = (pos[0], pos[1] + 3.62, pos[2])  # 这边需要加上眼睛高度（不知道为什么同世界传送就又不用加）
             self.ChangeDimension(dimension, pos)
             self.SetRot((pitch, yaw))
 
